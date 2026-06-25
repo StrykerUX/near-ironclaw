@@ -897,11 +897,11 @@ const EncryptedVaultUI = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Where captured intent lands: the product app (agent.near.ai) now owns the
-// full activation/onboarding flow. CTAs deep-link into it carrying the user's
-// intent as query params; the product captures usecase/prompt/integration/plan,
-// persists them across auth, and seeds the activation "Configure" step. (The
-// previous local mocked /onboard route has been retired.)
+// Where intent lands: every CTA now drops the user straight into the product's
+// chat-first onboarding (`/start` on agent.near.ai) — an agent chat from the
+// first second, auth deferred until a tool is needed. The captured prompt/usecase
+// rides along as query params and auto-runs as the first turn. No "what do you
+// want to do?" form, no payment gate, no agent-type pick (per onboarding align).
 const AGENT_APP_URL = process.env.NEXT_PUBLIC_AGENT_APP_URL || 'https://agent.near.ai';
 
 // Marketing pricing tiers (Starter / Basic / Pro+) → product plan ids.
@@ -922,7 +922,7 @@ const agentHref = (campaign: string, params: Record<string, string> = {}) => {
     utm_campaign: campaign,
     ...normalized,
   });
-  return `${AGENT_APP_URL}/?${sp.toString()}`;
+  return `${AGENT_APP_URL}/start?${sp.toString()}`;
 };
 
 // Pricing Card Component
@@ -1058,13 +1058,54 @@ const HeroIntentCapture = () => {
     return () => clearInterval(id);
   }, [value]);
 
+  // The hero IS the magic moment: submitting shows a scripted agent reply right
+  // here (ChatGPT-style "chat without auth"), then "Continue in your agent" hands
+  // off to the product chat-first /start, picking up the same prompt.
+  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
+  const [replyFull, setReplyFull] = useState('');
+  const [replyShown, setReplyShown] = useState('');
+
+  const craftReply = (text: string) => {
+    const t = text.toLowerCase();
+    let tool = '';
+    if (/inbox|email|gmail|invoice/.test(t)) tool = 'Gmail';
+    else if (/calendar|meeting|schedule|invite/.test(t)) tool = 'your calendar';
+    else if (/slack/.test(t)) tool = 'Slack';
+    else if (/github|repo|release|\bpr\b/.test(t)) tool = 'GitHub';
+    else if (/telegram|phone|briefing|alert/.test(t)) tool = 'Telegram';
+    const toolClause = tool
+      ? ` When you're ready I'll connect ${tool} and run it on your real data — credentials stay in an encrypted vault.`
+      : '';
+    return `On it. Here's my plan: set this up, run the first pass, and keep it going automatically — no babysitting.${toolClause} Want to watch me do it? Continue and I'll pick up right where we left off.`;
+  };
+
   const submit = (text: string) => {
     const prompt = text.trim();
     if (!prompt) return;
     posthog?.capture('intent_submitted', { length: prompt.length, page_section: 'hero' });
+    setChatPrompt(prompt);
+    setReplyFull(craftReply(prompt));
+    setValue('');
+  };
+
+  // Typewriter the agent reply for a touch of life.
+  useEffect(() => {
+    if (!replyFull) return;
+    setReplyShown('');
+    let i = 0;
+    const id = setInterval(() => {
+      i += 2;
+      setReplyShown(replyFull.slice(0, i));
+      if (i >= replyFull.length) clearInterval(id);
+    }, 16);
+    return () => clearInterval(id);
+  }, [replyFull]);
+
+  const continueToAgent = () => {
+    if (!chatPrompt) return;
     const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
     gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
-    window.location.href = agentHref('hero_intent', { prompt });
+    window.location.href = agentHref('hero_intent', { prompt: chatPrompt });
   };
 
   const adoptSuggestion = () => {
@@ -1137,6 +1178,65 @@ const HeroIntentCapture = () => {
           Start <ArrowRight size={14} />
         </button>
       </div>
+
+      {/* Inline magic moment: a taste of the agent, right on the page. */}
+      {chatPrompt && (
+        <div className="mt-4 space-y-3">
+          <div className="flex justify-end">
+            <div
+              className="max-w-[85%] px-4 py-2 text-sm"
+              style={{
+                backgroundColor: 'var(--ic-accent-tint)',
+                border: '1px solid var(--ic-accent-line)',
+                borderRadius: '14px 14px 4px 14px',
+                color: 'var(--ic-ink)',
+              }}
+            >
+              {chatPrompt}
+            </div>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span
+              className="mt-0.5 h-6 w-6 flex-shrink-0"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
+                borderRadius: '7px',
+              }}
+            />
+            <div
+              className="max-w-[85%] px-4 py-2.5 text-sm leading-relaxed"
+              style={{
+                backgroundColor: 'var(--ic-surface-raised)',
+                border: '1px solid var(--ic-line)',
+                borderRadius: '14px 14px 14px 4px',
+                color: 'var(--ic-ink)',
+              }}
+            >
+              {replyShown}
+              {replyShown.length < replyFull.length && (
+                <span
+                  className="ml-0.5 inline-block align-middle"
+                  style={{ width: 6, height: 14, background: 'var(--ic-accent)', opacity: 0.7 }}
+                />
+              )}
+            </div>
+          </div>
+          {replyShown.length >= replyFull.length && replyFull.length > 0 && (
+            <button
+              onClick={continueToAgent}
+              className="font-pixel-ic text-sm flex items-center gap-1.5 px-5 py-2.5 whitespace-nowrap transition-all"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
+                color: '#fff',
+                borderRadius: '12px',
+                border: 'none',
+              }}
+            >
+              Continue in your agent <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -1369,13 +1469,13 @@ const UseCasesSection = () => {
           {/* Header */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-24 items-start mb-10">
             <div>
-              <span className="font-pixel-ic text-[13px] tracking-[0.15em] mb-4 block" style={{ color: 'var(--ic-accent)' }}>Use Cases</span>
+              <span className="font-pixel-ic text-[13px] tracking-[0.15em] mb-4 block" style={{ color: 'var(--ic-accent)' }}>Explore</span>
               <h2 className="text-2xl sm:text-3xl md:text-5xl font-medium text-balance" style={{ letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--ic-ink)' }}>
-                What will you hand off first?
+                More you can hand off.
               </h2>
             </div>
             <p className="text-lg leading-relaxed lg:pt-12" style={{ color: 'var(--ic-ink-soft)' }}>
-              IronClaw automates the work around your work — email, updates, monitoring, scheduling. Pick a starting point below; your agent sets it up with you in chat, then runs it on its own.
+              You don&apos;t need to pick anything to get started — just open your agent above. But if you&apos;re curious, here&apos;s a taste of what IronClaw takes off your plate. Tap any to start it in your agent; it sets itself up in chat, then runs on its own.
             </p>
           </div>
 
@@ -2262,7 +2362,6 @@ export default function IronClawNuxApp() {
               { label: 'Docs', href: 'https://docs.ironclaw.com', cta_type: 'docs' },
               { label: 'GitHub', href: 'https://github.com/nearai/ironclaw', cta_type: 'github' },
               { label: 'NEAR AI', href: 'https://near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_link', cta_type: 'near_ai' },
-              { label: 'OpenClaw', href: 'https://agent.near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_openclaw', cta_type: 'deploy' },
             ].map(link => (
               <a
                 key={link.label}
