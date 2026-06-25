@@ -1042,7 +1042,7 @@ const INTENT_SUGGESTIONS = [
   'Log Telegram bug reports to a sheet',
 ];
 
-const HeroIntentCapture = () => {
+const HeroIntentCapture = ({ onChat }: { onChat?: (prompt: string) => void }) => {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const [suggestionIdx, setSuggestionIdx] = useState(0);
@@ -1070,27 +1070,20 @@ const HeroIntentCapture = () => {
   const [replyFull, setReplyFull] = useState('');
   const [replyShown, setReplyShown] = useState('');
 
-  const craftReply = (text: string) => {
-    const t = text.toLowerCase();
-    let tool = '';
-    if (/inbox|email|gmail|invoice/.test(t)) tool = 'Gmail';
-    else if (/calendar|meeting|schedule|invite/.test(t)) tool = 'your calendar';
-    else if (/slack/.test(t)) tool = 'Slack';
-    else if (/github|repo|release|\bpr\b/.test(t)) tool = 'GitHub';
-    else if (/telegram|phone|briefing|alert/.test(t)) tool = 'Telegram';
-    const toolClause = tool
-      ? ` When you're ready I'll connect ${tool} and run it on your real data — credentials stay in an encrypted vault.`
-      : '';
-    return `On it. Here's my plan: set this up, run the first pass, and keep it going automatically — no babysitting.${toolClause} Want to watch me do it? Continue and I'll pick up right where we left off.`;
-  };
+  // Mirrors the exact story /start tells, so both surfaces are identical: one
+  // Gmail sign-in cascades to the whole stack, the agent reads your world (same
+  // numbers as /start's READING_TARGETS), and acts in hour 1 — Suggest or Act.
+  const craftReply = () =>
+    "On it. Here's how this goes: connect Gmail once, and I use that single sign-in to reach the rest of your stack — Calendar, Drive, Notion, Slack. I read your world (~1,284 emails, 37 Notion docs, 12 transcripts), learn your priorities, and in your first hour you'll have a morning digest, your meetings booked, and your X posts drafted — every one a suggestion you approve, or flip to Act and I just do it.";
 
   const submit = (text: string) => {
     const prompt = text.trim();
     if (!prompt) return;
     posthog?.capture('intent_submitted', { length: prompt.length, page_section: 'hero' });
     setChatPrompt(prompt);
-    setReplyFull(craftReply(prompt));
+    setReplyFull(craftReply());
     setValue('');
+    onChat?.(prompt);
   };
 
   // Typewriter the agent reply for a touch of life.
@@ -1105,13 +1098,6 @@ const HeroIntentCapture = () => {
     }, 16);
     return () => clearInterval(id);
   }, [replyFull]);
-
-  const continueToAgent = () => {
-    if (!chatPrompt) return;
-    const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
-    gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
-    window.location.href = agentHref('hero_intent', { prompt: chatPrompt });
-  };
 
   const adoptSuggestion = () => {
     setValue(INTENT_SUGGESTIONS[suggestionIdx]);
@@ -1226,20 +1212,6 @@ const HeroIntentCapture = () => {
               )}
             </div>
           </div>
-          {replyShown.length >= replyFull.length && replyFull.length > 0 && (
-            <button
-              onClick={continueToAgent}
-              className="font-pixel-ic text-sm flex items-center gap-1.5 px-5 py-2.5 whitespace-nowrap transition-all"
-              style={{
-                background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
-                color: '#fff',
-                borderRadius: '12px',
-                border: 'none',
-              }}
-            >
-              Continue in your agent <ArrowRight size={14} />
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -1556,6 +1528,10 @@ export default function IronClawNuxApp() {
   const [imageRight, setImageRight] = useState('right-16');
   const [githubStars, setGithubStars] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState('');
+  // Hero "chat mode": once the user starts the inline mini-chat, the character
+  // slides off, the hero lifts to give the chat room, and the bottom CTAs swap.
+  const [heroChatting, setHeroChatting] = useState(false);
+  const [heroPrompt, setHeroPrompt] = useState('');
   const lastScrollY = useRef(0);
   const posthog = usePostHog();
 
@@ -1796,11 +1772,15 @@ export default function IronClawNuxApp() {
       >
         <MagneticHeroCanvas />
 
-        {/* Desktop: absolutely positioned right */}
+        {/* Desktop: absolutely positioned right. Slides off to the right once the
+            user starts chatting, so the hero reads like a chat window. */}
         <div
           className="absolute bottom-[-35px] z-0 pointer-events-none hidden md:block"
           style={{
             right: imageRight === 'right-8' ? '140px' : '55px',
+            transform: heroChatting ? 'translateX(85%) scale(0.96)' : 'translateX(0) scale(1)',
+            opacity: heroChatting ? 0 : 1,
+            transition: 'transform 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.55s ease',
           }}
         >
           <Image
@@ -1818,7 +1798,7 @@ export default function IronClawNuxApp() {
           {/* my-auto centers the content in whatever vertical space the CTA
               cluster leaves over, so tall viewports don't open up a dead gap */}
           <div className="grid grid-cols-1 w-full my-auto">
-            <div>
+            <div style={{ transform: heroChatting ? 'translateY(-28px)' : 'translateY(0)', transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)' }}>
               {/* Quiet "Built by NEAR" lockup — translucent, sits where the old
                   muted wordmark did. */}
               <div className="flex items-center gap-2" style={{ marginBottom: '20px', opacity: 0.32 }}>
@@ -1845,59 +1825,97 @@ export default function IronClawNuxApp() {
                 An open-source agent for your busywork — in encrypted enclaves, where your secrets never touch the model.
               </p>
 
-              <HeroIntentCapture />
+              <HeroIntentCapture onChat={(p) => { setHeroChatting(true); setHeroPrompt(p); }} />
             </div>
 
-            {/* Mobile-only: image in flow so hero expands to fit */}
-            <div className="flex justify-center pt-4 pb-2 md:hidden">
-              <Image
-                src="/images/iron_claw_guy1.png"
-                alt="IronClaw"
-                width={460}
-                height={460}
-                className="object-contain"
-                style={{ width: 'clamp(110px, 35vw, 190px)', height: 'auto' }}
-                priority
-              />
-            </div>
+            {/* Mobile-only: image in flow so hero expands to fit. Collapses once
+                chatting so the conversation has room. */}
+            {!heroChatting && (
+              <div className="flex justify-center pt-4 pb-2 md:hidden">
+                <Image
+                  src="/images/iron_claw_guy1.png"
+                  alt="IronClaw"
+                  width={460}
+                  height={460}
+                  className="object-contain"
+                  style={{ width: 'clamp(110px, 35vw, 190px)', height: 'auto' }}
+                  priority
+                />
+              </div>
+            )}
           </div>
 
           {/* CTA cluster — anchored to the bottom of the 100vh hero. Discovery
               leads; the deploy flow lives in the nav, intent capture, and the
               use-case cards themselves. */}
           <div className="pt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md relative z-10">
-            <GradientCipherButton label="Discover use cases" icon={ArrowDown} iconRight className="flex-1 text-sm px-5 py-3" onClick={() => {
-              posthog?.capture('cta_clicked', {
-                cta_text: 'Discover use cases',
-                cta_type: 'use_cases',
-                page_section: 'hero',
-              });
-              scrollToSection('use-cases');
-            }} />
-            <a
-              href="https://github.com/nearai/ironclaw"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex-1 font-medium text-sm px-5 py-3 flex items-center justify-center gap-2 transition-all cursor-pointer"
-              style={{ border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', textDecoration: 'none', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4CA7E6'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.boxShadow = '0 24px 24px -20px rgba(76,167,230,0.55)'; }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#111'; e.currentTarget.style.boxShadow = 'none'; }}
-              onClick={() => posthog?.capture('cta_clicked', {
-                cta_text: 'View source',
-                cta_type: 'github',
-                page_section: 'hero',
-              })}
-            >
-              <span className="group-hover:[animation:github-nudge_3.5s_ease-in-out_infinite]"><Github size={17} /></span> View source
-              {githubStars !== null && (
-                <span
-                  className="text-[12px] font-medium flex items-center gap-1 px-2 py-0.5"
-                  style={{ backgroundColor: 'rgba(76,167,230,0.12)', border: '1px solid rgba(76,167,230,0.3)', borderRadius: '999px', color: 'inherit', opacity: 0.85 }}
+            {heroChatting ? (
+              <>
+                {/* Secondary: explore use cases (replaces the left button) */}
+                <button
+                  onClick={() => {
+                    posthog?.capture('cta_clicked', { cta_text: 'Explore use cases', cta_type: 'use_cases', page_section: 'hero' });
+                    scrollToSection('use-cases');
+                  }}
+                  className="flex-1 font-medium text-sm px-5 py-3 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  style={{ border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4CA7E6'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#111'; }}
                 >
-                  <Star size={12} /> {formatStars(githubStars)}
-                </span>
-              )}
-            </a>
+                  Explore use cases <ArrowDown size={15} />
+                </button>
+                {/* Primary: continue in agent (animated arrow) */}
+                <button
+                  onClick={() => {
+                    if (!heroPrompt) return;
+                    const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
+                    gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
+                    posthog?.capture('cta_clicked', { cta_text: 'Continue in agent', cta_type: 'continue', page_section: 'hero' });
+                    window.location.href = agentHref('hero_continue', { prompt: heroPrompt });
+                  }}
+                  className="flex-1 font-pixel-ic text-sm px-5 py-3 flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer"
+                  style={{ background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))', color: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 14px 32px -12px rgba(76,167,230,0.55)' }}
+                >
+                  Continue in agent <ArrowRight size={15} style={{ animation: 'hero-arrow-nudge 1.4s ease-in-out infinite' }} />
+                </button>
+                <style>{`@keyframes hero-arrow-nudge { 0%,100%{transform:translateX(0)} 50%{transform:translateX(4px)} }`}</style>
+              </>
+            ) : (
+              <>
+                <GradientCipherButton label="Discover use cases" icon={ArrowDown} iconRight className="flex-1 text-sm px-5 py-3" onClick={() => {
+                  posthog?.capture('cta_clicked', {
+                    cta_text: 'Discover use cases',
+                    cta_type: 'use_cases',
+                    page_section: 'hero',
+                  });
+                  scrollToSection('use-cases');
+                }} />
+                <a
+                  href="https://github.com/nearai/ironclaw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex-1 font-medium text-sm px-5 py-3 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  style={{ border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', textDecoration: 'none', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4CA7E6'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.boxShadow = '0 24px 24px -20px rgba(76,167,230,0.55)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#111'; e.currentTarget.style.boxShadow = 'none'; }}
+                  onClick={() => posthog?.capture('cta_clicked', {
+                    cta_text: 'View source',
+                    cta_type: 'github',
+                    page_section: 'hero',
+                  })}
+                >
+                  <span className="group-hover:[animation:github-nudge_3.5s_ease-in-out_infinite]"><Github size={17} /></span> View source
+                  {githubStars !== null && (
+                    <span
+                      className="text-[12px] font-medium flex items-center gap-1 px-2 py-0.5"
+                      style={{ backgroundColor: 'rgba(76,167,230,0.12)', border: '1px solid rgba(76,167,230,0.3)', borderRadius: '999px', color: 'inherit', opacity: 0.85 }}
+                    >
+                      <Star size={12} /> {formatStars(githubStars)}
+                    </span>
+                  )}
+                </a>
+              </>
+            )}
           </div>
         </div>
       </section>
