@@ -21,14 +21,10 @@ import {
   FileText,
   HardDrive,
   Presentation,
-  Slack,
   Send,
   MessageCircle,
-  Layers,
-  StickyNote,
-  ListTodo,
-  Headphones,
-  Globe,
+  Search,
+  Boxes,
   Github,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
@@ -42,6 +38,11 @@ export type IntegrationEntry = {
   recipes: string[];
 };
 
+// Live integrations only — mirrors what's actually shipped in nearai/ironclaw
+// (docs: Channels = Telegram/Discord/Signal/Webhook/Local; Extensions =
+// Google Gmail/Calendar/Drive/Docs/Sheets/Slides, GitHub, web search, file
+// tools, shell, and generic MCP). Notion/Linear/Slack/etc. are reachable via the
+// generic MCP entry rather than first-party tiles.
 export const INTEGRATIONS: IntegrationEntry[] = [
   { id: 'gmail', icon: Mail, name: 'Gmail', kind: 'Tool', blurb: 'Read, send, and manage email — without the model ever seeing your credentials.', recipes: [
     'Triage my inbox: label new emails as "Action", "FYI", or "Ignore", and summarize the Action ones.',
@@ -53,46 +54,6 @@ export const INTEGRATIONS: IntegrationEntry[] = [
     'Find a 30-minute slot with Sam next week and draft the invite.',
     'Every Sunday evening, send me a summary of my week ahead.',
   ]},
-  { id: 'google_sheets', icon: FileSpreadsheet, name: 'Google Sheets', kind: 'Tool', blurb: 'Your agent reads and writes spreadsheets like a teammate.', recipes: [
-    'Log every "bug:" message from Telegram into our shared bug-tracker sheet.',
-    'Every weekday at 5pm, pull our KPI numbers into the dashboard tab.',
-    'Add every near.ai inbound email to a sheet called "CRM".',
-  ]},
-  { id: 'slack', icon: Slack, name: 'Slack', kind: 'Channel', blurb: 'Talk to your agent where your team already works.', recipes: [
-    'Connect to Slack so I can message you from there.',
-    'If "IronClaw" or "NEAR AI" appears on Hacker News, post a summary to #mentions.',
-    'When I DM you "create task: ..." open a ticket and confirm back with the link.',
-  ]},
-  { id: 'telegram', icon: Send, name: 'Telegram', kind: 'Channel', blurb: 'Your agent in your pocket — on your phone, on the go.', recipes: [
-    'Connect to Telegram so I can message you from my phone.',
-    'Every morning at 9am, send me a briefing with my calendar and inbox.',
-    'Ping my health endpoint every 5 minutes and alert me here if it fails.',
-  ]},
-  { id: 'github', icon: Github, name: 'GitHub', kind: 'Tool', blurb: 'Repos, issues, PRs, and releases — watched and summarized.', recipes: [
-    'Watch the nearai/ironclaw repo and summarize new releases when they ship.',
-    'Every morning, list PRs waiting on my review across my repos.',
-    'When CI fails on main, send me the failing job and the suspect commit.',
-  ]},
-  { id: 'linear', icon: ListTodo, name: 'Linear', kind: 'MCP server', blurb: 'Issues filed, triaged, and tracked from chat.', recipes: [
-    'When I say "create task: ..." open a Linear issue with that description.',
-    'Every Friday, summarize what my team shipped this week from Linear.',
-    'Label and route new bug reports from Telegram into the right Linear project.',
-  ]},
-  { id: 'notion', icon: StickyNote, name: 'Notion', kind: 'MCP server', blurb: 'Docs and databases your agent can read and update.', recipes: [
-    'Append my meeting notes summary to the team journal in Notion after each call.',
-    'Keep a Notion database of every customer-feedback message from Slack.',
-    'Draft a weekly status page in Notion from my tasks and calendar.',
-  ]},
-  { id: 'discord', icon: MessagesSquare, name: 'Discord', kind: 'Channel', blurb: 'Run your agent inside your community server.', recipes: [
-    'Connect to Discord so the community can ask you common questions.',
-    'Auto-answer FAQs in #support and escalate real bugs to the team.',
-    'Post a daily digest of community activity to #team.',
-  ]},
-  { id: 'whatsapp', icon: MessageCircle, name: 'WhatsApp', kind: 'Channel', blurb: 'Message your agent like any other contact.', recipes: [
-    'Connect to WhatsApp so I can reach you like any contact.',
-    'Forward me urgent emails as WhatsApp messages when I am away from my desk.',
-    'Let me dictate tasks to you over WhatsApp voice notes.',
-  ]},
   { id: 'google_drive', icon: HardDrive, name: 'Google Drive', kind: 'Tool', blurb: 'Files found, organized, and summarized on demand.', recipes: [
     'Find the latest pitch deck in Drive and summarize what changed.',
     'When I upload a contract, extract the key dates and obligations.',
@@ -103,25 +64,45 @@ export const INTEGRATIONS: IntegrationEntry[] = [
     'Summarize every doc shared with me this week.',
     'Turn my meeting notes into a polished memo.',
   ]},
+  { id: 'google_sheets', icon: FileSpreadsheet, name: 'Google Sheets', kind: 'Tool', blurb: 'Your agent reads and writes spreadsheets like a teammate.', recipes: [
+    'Log every "bug:" message into our shared bug-tracker sheet.',
+    'Every weekday at 5pm, pull our KPI numbers into the dashboard tab.',
+    'Add every near.ai inbound email to a sheet called "CRM".',
+  ]},
   { id: 'google_slides', icon: Presentation, name: 'Google Slides', kind: 'Tool', blurb: 'Decks assembled from your notes and data.', recipes: [
     'Build a 5-slide status deck from this week\u2019s KPI sheet.',
     'Turn this doc into a presentation outline.',
     'Refresh the numbers in my monthly review deck.',
   ]},
-  { id: 'asana', icon: Layers, name: 'Asana', kind: 'MCP server', blurb: 'Projects and tasks coordinated by your agent.', recipes: [
-    'Create Asana tasks from action items in my meeting notes.',
-    'Every Monday, summarize overdue tasks across my projects.',
-    'Move tasks to Done when the linked PR merges.',
+  { id: 'github', icon: Github, name: 'GitHub', kind: 'Tool', blurb: 'Repos, issues, PRs, and releases — watched and summarized.', recipes: [
+    'Watch the nearai/ironclaw repo and summarize new releases when they ship.',
+    'Every morning, list PRs waiting on my review across my repos.',
+    'When CI fails on main, send me the failing job and the suspect commit.',
   ]},
-  { id: 'intercom', icon: Headphones, name: 'Intercom', kind: 'MCP server', blurb: 'Customer conversations triaged and summarized.', recipes: [
-    'Summarize new Intercom conversations every morning.',
-    'Tag and route urgent customer issues to the on-call channel.',
-    'Draft replies for common questions and queue them for review.',
+  { id: 'telegram', icon: Send, name: 'Telegram', kind: 'Channel', blurb: 'Your agent in your pocket — on your phone, on the go.', recipes: [
+    'Connect to Telegram so I can message you from my phone.',
+    'Every morning at 9am, send me a briefing with my calendar and inbox.',
+    'Ping my health endpoint every 5 minutes and alert me here if it fails.',
   ]},
-  { id: 'cloudflare', icon: Globe, name: 'Cloudflare', kind: 'MCP server', blurb: 'DNS, Workers, and infrastructure on a leash.', recipes: [
-    'Alert me when any of my zones see a traffic spike.',
-    'Purge the cache for ironclaw.com after each deploy.',
-    'List DNS records that changed this month.',
+  { id: 'discord', icon: MessagesSquare, name: 'Discord', kind: 'Channel', blurb: 'Run your agent inside your community server.', recipes: [
+    'Connect to Discord so the community can ask you common questions.',
+    'Auto-answer FAQs in #support and escalate real bugs to the team.',
+    'Post a daily digest of community activity to #team.',
+  ]},
+  { id: 'signal', icon: MessageCircle, name: 'Signal', kind: 'Channel', blurb: 'Private, end-to-end encrypted messaging — reach your agent on Signal.', recipes: [
+    'Message me on Signal the moment something needs my attention.',
+    'Send my morning briefing to Signal instead of email.',
+    'Let me reply to you privately over Signal.',
+  ]},
+  { id: 'web_search', icon: Search, name: 'Web Search', kind: 'Tool', blurb: 'Live web research, fact-checks, and summaries on demand.', recipes: [
+    'Research a company and summarize what they do before my meeting.',
+    'Find the latest news on a topic I track and summarize it daily.',
+    'Fact-check this claim against current sources.',
+  ]},
+  { id: 'mcp', icon: Boxes, name: 'MCP Servers', kind: 'MCP server', blurb: 'Connect any MCP-compatible tool — Notion, Linear, and your own internal tools.', recipes: [
+    'Connect a Notion MCP server and keep my docs updated from chat.',
+    'Add my team\u2019s internal MCP tools and call them right here.',
+    'Bring any MCP-compatible tool and I\u2019ll start using it.',
   ]},
 ];
 

@@ -673,20 +673,22 @@ const PromptInjectionUI = () => {
   }, []);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden flex items-center justify-center" style={{ minHeight: '360px' }}>
-      <div className="relative z-10 w-full max-w-[420px] mx-auto p-5"
-        style={{ backgroundColor: 'rgba(235,235,235,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderRadius: '1rem', border: '1px solid rgba(0,0,0,0.07)' }}>
+    <div className="relative rounded-2xl overflow-hidden flex items-center justify-center" style={{ minHeight: '440px' }}>
+      <div className="relative z-10 w-full max-w-[560px] mx-auto"
+        style={{ backgroundColor: 'rgba(244,244,244,0.7)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 24px 60px -24px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
 
-        {/* Traffic lights */}
-        <div className="flex items-center gap-1.5 mb-4 pb-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FF5F57' }} />
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FFBD2E' }} />
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#28C840' }} />
-          <span className="font-mono-ic font-light text-[11px] ml-2" style={{ color: 'rgba(0,0,0,0.55)' }}>openclaw — agent</span>
+        {/* macOS title bar */}
+        <div className="relative flex items-center px-4 py-3" style={{ backgroundColor: 'rgba(0,0,0,0.04)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FF5F57', border: '0.5px solid rgba(0,0,0,0.08)' }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FFBD2E', border: '0.5px solid rgba(0,0,0,0.08)' }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#28C840', border: '0.5px solid rgba(0,0,0,0.08)' }} />
+          </div>
+          <span className="font-mono-ic font-normal text-[12px] absolute left-1/2 -translate-x-1/2" style={{ color: 'rgba(0,0,0,0.5)' }}>openclaw — agent</span>
         </div>
 
         {/* Phase content with fade */}
-        <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.35s ease' }}>
+        <div className="p-6" style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.35s ease' }}>
 
           {phase === 'warning' ? (
             <div className="py-8 text-center">
@@ -937,7 +939,7 @@ type PricingCardProps = {
   ctaLabel?: string;
 };
 
-function PricingCard({ name, price, originalPrice, period, description, features, popular, ctaLabel = 'Get Started' }: PricingCardProps) {
+function PricingCard({ name, price, originalPrice, period, description, features, popular, ctaLabel = 'Get started' }: PricingCardProps) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -954,15 +956,17 @@ function PricingCard({ name, price, originalPrice, period, description, features
           transition: 'opacity 0.2s ease-out',
         }} />
       </div>
-      {popular && (
-        <span style={{ position: 'absolute', top: '-12px', right: '1.5rem', backgroundColor: '#fff', color: '#111', fontSize: '0.7rem', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', letterSpacing: '0.05em' }}>Popular</span>
-      )}
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.5rem' }}>{name}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: '1.1rem' }}>{name}</span>
+        {popular && (
+          <span className="font-mono-ic" style={{ color: 'rgba(255,255,255,0.72)', backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>Popular</span>
+        )}
+      </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '1rem' }}>
         {originalPrice && (
-          <span style={{ color: 'rgba(255,255,255,0.05)', fontSize: '1.5rem', fontWeight: 700, textDecoration: 'line-through' }}>{originalPrice}</span>
+          <span style={{ color: 'rgba(255,255,255,0.32)', fontSize: '1.25rem', fontWeight: 500, textDecoration: 'line-through' }}>{originalPrice}</span>
         )}
-        <span style={{ color: '#fff', fontSize: '2.5rem', fontWeight: 800 }}>{price}</span>
+        <span style={{ color: '#fff', fontSize: '2.25rem', fontWeight: 600 }}>{price}</span>
         <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem' }}>{period}</span>
       </div>
       <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>{description}</p>
@@ -978,13 +982,14 @@ function PricingCard({ name, price, originalPrice, period, description, features
         href={agentHref(`pricing_${name.toLowerCase().replace('+', 'plus')}`, { plan: name.toLowerCase().replace('+', 'plus') })}
         style={{
           display: 'block',
-          padding: '0.75rem',
+          padding: '0.7rem',
           textAlign: 'center',
           borderRadius: '12px',
           backgroundColor: '#fff',
           color: '#111',
-          fontWeight: 700,
-          fontSize: '0.95rem',
+          fontWeight: 500,
+          fontSize: '0.875rem',
+          letterSpacing: '0',
           textDecoration: 'none',
           transition: 'opacity 0.2s',
         }}
@@ -1398,7 +1403,7 @@ const IntegrationsSection = () => {
         {/* Looping marquee rows — opposite directions, pause on hover */}
         <div className="flex flex-col gap-4">
           {[{ items: rowA, reverse: false }, { items: rowB, reverse: true }].map(({ items, reverse }, rowIdx) => (
-            <div key={rowIdx} className="ic-marquee overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
+            <div key={rowIdx} className="ic-marquee overflow-hidden py-5" style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
               <div className={`flex items-center gap-4 w-max ${reverse ? 'ic-marquee-track-rev' : 'ic-marquee-track'}`}>
                 {[...Array(3)].map((_, copy) => (
                   <React.Fragment key={copy}>
@@ -1669,8 +1674,8 @@ export default function IronClawNuxApp() {
         >
           {/* Icon-only mark: the claw glyph, cropped to its exact bbox so no
               sliver of the blue lettering can bleed in. */}
-          <a href="#" aria-label="IronClaw" className="flex items-center flex-shrink-0" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <ClawMark size={37} style={{ display: 'block', color: '#111' }} />
+          <a href="#" aria-label="IronClaw" className="flex items-center flex-shrink-0 p-1.5" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <ClawMark size={28} style={{ display: 'block', color: '#111' }} />
           </a>
 
           <div className="hidden lg:flex items-center gap-6 flex-nowrap min-w-0">
@@ -2039,10 +2044,12 @@ export default function IronClawNuxApp() {
                   { title: 'Hundreds of malicious skills found on ClawHub', desc: 'Researchers found hundreds of community skills designed to quietly exfiltrate credentials. You won\'t spot them in a code review.' },
                   { title: '30,000+ instances exposed to the internet.', desc: 'Tens of thousands of OpenClaw instances are publicly reachable. Attackers are already weaponizing them.' },
                 ].map((item, i) => (
-                  <li key={i} className="pl-6 relative" style={{ borderLeft: '3px solid rgba(220,60,60,0.6)' }}>
-                    <span style={{ position: 'absolute', left: '-15px', top: '-2px', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'rgba(220,60,60,0.9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{i + 1}</span>
-                    <p className="font-semibold text-base mb-1" style={{ color: 'rgba(0,0,0,0.9)' }}>{item.title}</p>
-                    <p className="text-sm lg:text-base leading-relaxed" style={{ color: 'rgba(0,0,0,0.55)' }}>{item.desc}</p>
+                  <li key={i} className="flex gap-3.5">
+                    <span style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'rgba(220,60,60,0.9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{i + 1}</span>
+                    <div>
+                      <p className="font-semibold text-base mb-1" style={{ color: 'rgba(0,0,0,0.9)' }}>{item.title}</p>
+                      <p className="text-sm lg:text-base leading-relaxed" style={{ color: 'rgba(0,0,0,0.55)' }}>{item.desc}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -2202,7 +2209,7 @@ export default function IronClawNuxApp() {
           Open source. One-click deploy on NEAR AI Cloud. Your secrets never leave the encrypted vault.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10 w-full sm:w-auto">
-          <GradientCipherButton label="Deploy Secure Agent" icon={Rocket} className="w-full sm:w-auto" onClick={() => {
+          <GradientCipherButton label="Deploy secure agent" icon={Rocket} className="w-full sm:w-auto" onClick={() => {
             (window as any).gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
             posthog?.capture('cta_clicked', {
               cta_text: 'Deploy Secure Agent',
