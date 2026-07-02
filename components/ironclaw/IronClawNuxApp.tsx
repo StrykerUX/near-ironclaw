@@ -1042,7 +1042,7 @@ const INTENT_SUGGESTIONS = [
   'Log Telegram bug reports to a sheet',
 ];
 
-const HeroIntentCapture = ({ onChat }: { onChat?: (prompt: string) => void }) => {
+const HeroIntentCapture = () => {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const [suggestionIdx, setSuggestionIdx] = useState(0);
@@ -1063,41 +1063,14 @@ const HeroIntentCapture = ({ onChat }: { onChat?: (prompt: string) => void }) =>
     return () => clearInterval(id);
   }, [value]);
 
-  // The hero IS the magic moment: submitting shows a scripted agent reply right
-  // here (ChatGPT-style "chat without auth"), then "Continue in your agent" hands
-  // off to the product chat-first /start, picking up the same prompt.
-  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
-  const [replyFull, setReplyFull] = useState('');
-  const [replyShown, setReplyShown] = useState('');
-
-  // Mirrors the exact story /start tells, so both surfaces are identical: one
-  // Gmail sign-in cascades to the whole stack, the agent reads your world (same
-  // numbers as /start's READING_TARGETS), and acts in hour 1 — Suggest or Act.
-  const craftReply = () =>
-    "On it. Here's how this goes: connect Gmail once, and I use that single sign-in to reach the rest of your stack — Calendar, Drive, Notion, Slack. I read your world (~1,284 emails, 37 Notion docs, 12 transcripts), learn your priorities, and in your first hour you'll have a morning digest, your meetings booked, and your X posts drafted — every one a suggestion you approve, or flip to Act and I just do it.";
-
+  // Submitting hands off directly to the product chat-first /start, carrying the
+  // typed intent along as ?prompt= so it auto-runs as the first turn. An empty
+  // input simply opens /start with no prompt.
   const submit = (text: string) => {
     const prompt = text.trim();
-    if (!prompt) return;
     posthog?.capture('intent_submitted', { length: prompt.length, page_section: 'hero' });
-    setChatPrompt(prompt);
-    setReplyFull(craftReply());
-    setValue('');
-    onChat?.(prompt);
+    window.location.href = prompt ? agentHref('hero', { prompt }) : agentHref('hero');
   };
-
-  // Typewriter the agent reply for a touch of life.
-  useEffect(() => {
-    if (!replyFull) return;
-    setReplyShown('');
-    let i = 0;
-    const id = setInterval(() => {
-      i += 2;
-      setReplyShown(replyFull.slice(0, i));
-      if (i >= replyFull.length) clearInterval(id);
-    }, 16);
-    return () => clearInterval(id);
-  }, [replyFull]);
 
   const adoptSuggestion = () => {
     setValue(INTENT_SUGGESTIONS[suggestionIdx]);
@@ -1154,66 +1127,18 @@ const HeroIntentCapture = ({ onChat }: { onChat?: (prompt: string) => void }) =>
         )}
         <button
           onClick={() => submit(value)}
-          disabled={!value.trim()}
           aria-label="Start with this automation"
-          className="font-pixel-ic text-sm flex items-center gap-1.5 px-5 py-2.5 whitespace-nowrap transition-all"
+          className="font-pixel-ic text-sm flex items-center gap-1.5 px-5 py-2.5 whitespace-nowrap transition-all cursor-pointer"
           style={{
             background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
             color: '#fff',
             borderRadius: '12px',
             border: 'none',
-            opacity: value.trim() ? 1 : 0.45,
-            cursor: value.trim() ? 'pointer' : 'default',
           }}
         >
           Start <ArrowRight size={14} />
         </button>
       </div>
-
-      {/* Inline magic moment: a taste of the agent, right on the page. */}
-      {chatPrompt && (
-        <div className="mt-4 space-y-3">
-          <div className="flex justify-end">
-            <div
-              className="max-w-[85%] px-4 py-2 text-sm"
-              style={{
-                backgroundColor: 'var(--ic-accent-tint)',
-                border: '1px solid var(--ic-accent-line)',
-                borderRadius: '14px 14px 4px 14px',
-                color: 'var(--ic-ink)',
-              }}
-            >
-              {chatPrompt}
-            </div>
-          </div>
-          <div className="flex items-start gap-2.5">
-            <span
-              className="mt-0.5 h-6 w-6 flex-shrink-0"
-              style={{
-                background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
-                borderRadius: '7px',
-              }}
-            />
-            <div
-              className="max-w-[85%] px-4 py-2.5 text-sm leading-relaxed"
-              style={{
-                backgroundColor: 'var(--ic-surface-raised)',
-                border: '1px solid var(--ic-line)',
-                borderRadius: '14px 14px 14px 4px',
-                color: 'var(--ic-ink)',
-              }}
-            >
-              {replyShown}
-              {replyShown.length < replyFull.length && (
-                <span
-                  className="ml-0.5 inline-block align-middle"
-                  style={{ width: 6, height: 14, background: 'var(--ic-accent)', opacity: 0.7 }}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1268,7 +1193,7 @@ const IntegrationModal = ({ entry, onClose }: { entry: IntegrationEntry; onClose
 
   const launch = (prompt: string) => {
     posthog?.capture('integration_recipe_clicked', { integration: entry.id, page_section: 'integrations' });
-    window.location.href = agentHref(`integration_${entry.id}`, { integration: entry.id, prompt });
+    window.location.assign(agentHref(`integration_${entry.id}`, { integration: entry.id, prompt }));
   };
 
   return (
@@ -1528,10 +1453,6 @@ export default function IronClawNuxApp() {
   const [imageRight, setImageRight] = useState('right-16');
   const [githubStars, setGithubStars] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState('');
-  // Hero "chat mode": once the user starts the inline mini-chat, the character
-  // slides off, the hero lifts to give the chat room, and the bottom CTAs swap.
-  const [heroChatting, setHeroChatting] = useState(false);
-  const [heroPrompt, setHeroPrompt] = useState('');
   const lastScrollY = useRef(0);
   const posthog = usePostHog();
 
@@ -1686,7 +1607,7 @@ export default function IronClawNuxApp() {
           </div>
 
           <GradientCipherButton label="Deploy agent" icon={Rocket} className="hidden lg:flex text-sm px-6 py-3" onClick={() => {
-            (window as any).gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
+            (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
             posthog?.capture('cta_clicked', {
               cta_text: 'Deploy agent',
               cta_type: 'deploy',
@@ -1772,15 +1693,11 @@ export default function IronClawNuxApp() {
       >
         <MagneticHeroCanvas />
 
-        {/* Desktop: absolutely positioned right. Slides off to the right once the
-            user starts chatting, so the hero reads like a chat window. */}
+        {/* Desktop: absolutely positioned right. */}
         <div
           className="absolute bottom-[-35px] z-0 pointer-events-none hidden md:block"
           style={{
             right: imageRight === 'right-8' ? '140px' : '55px',
-            transform: heroChatting ? 'translateX(85%) scale(0.96)' : 'translateX(0) scale(1)',
-            opacity: heroChatting ? 0 : 1,
-            transition: 'transform 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.55s ease',
           }}
         >
           <Image
@@ -1798,7 +1715,7 @@ export default function IronClawNuxApp() {
           {/* my-auto centers the content in whatever vertical space the CTA
               cluster leaves over, so tall viewports don't open up a dead gap */}
           <div className="grid grid-cols-1 w-full my-auto">
-            <div style={{ transform: heroChatting ? 'translateY(-28px)' : 'translateY(0)', transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)' }}>
+            <div>
               {/* Quiet "Built by NEAR" lockup — translucent, sits where the old
                   muted wordmark did. */}
               <div className="flex items-center gap-2" style={{ marginBottom: '20px', opacity: 0.32 }}>
@@ -1825,63 +1742,27 @@ export default function IronClawNuxApp() {
                 An open-source agent for your busywork — in encrypted enclaves, where your secrets never touch the model.
               </p>
 
-              <HeroIntentCapture onChat={(p) => { setHeroChatting(true); setHeroPrompt(p); }} />
+              <HeroIntentCapture />
             </div>
 
-            {/* Mobile-only: image in flow so hero expands to fit. Collapses once
-                chatting so the conversation has room. */}
-            {!heroChatting && (
-              <div className="flex justify-center pt-4 pb-2 md:hidden">
-                <Image
-                  src="/images/iron_claw_guy1.png"
-                  alt="IronClaw"
-                  width={460}
-                  height={460}
-                  className="object-contain"
-                  style={{ width: 'clamp(110px, 35vw, 190px)', height: 'auto' }}
-                  priority
-                />
-              </div>
-            )}
+            {/* Mobile-only: image in flow so hero expands to fit. */}
+            <div className="flex justify-center pt-4 pb-2 md:hidden">
+              <Image
+                src="/images/iron_claw_guy1.png"
+                alt="IronClaw"
+                width={460}
+                height={460}
+                className="object-contain"
+                style={{ width: 'clamp(110px, 35vw, 190px)', height: 'auto' }}
+                priority
+              />
+            </div>
           </div>
 
           {/* CTA cluster — anchored to the bottom of the 100vh hero. Discovery
               leads; the deploy flow lives in the nav, intent capture, and the
               use-case cards themselves. */}
           <div className="pt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md relative z-10">
-            {heroChatting ? (
-              <>
-                {/* Secondary: explore use cases (replaces the left button) */}
-                <button
-                  onClick={() => {
-                    posthog?.capture('cta_clicked', { cta_text: 'Explore use cases', cta_type: 'use_cases', page_section: 'hero' });
-                    scrollToSection('use-cases');
-                  }}
-                  className="flex-1 font-medium text-sm px-5 py-3 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  style={{ border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4CA7E6'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#111'; }}
-                >
-                  Explore use cases <ArrowDown size={15} />
-                </button>
-                {/* Primary: continue in agent (animated arrow) */}
-                <button
-                  onClick={() => {
-                    if (!heroPrompt) return;
-                    const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag;
-                    gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
-                    posthog?.capture('cta_clicked', { cta_text: 'Continue in agent', cta_type: 'continue', page_section: 'hero' });
-                    window.location.href = agentHref('hero_continue', { prompt: heroPrompt });
-                  }}
-                  className="flex-1 font-pixel-ic text-sm px-5 py-3 flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer"
-                  style={{ background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))', color: '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 14px 32px -12px rgba(76,167,230,0.55)' }}
-                >
-                  Continue in agent <ArrowRight size={15} style={{ animation: 'hero-arrow-nudge 1.4s ease-in-out infinite' }} />
-                </button>
-                <style>{`@keyframes hero-arrow-nudge { 0%,100%{transform:translateX(0)} 50%{transform:translateX(4px)} }`}</style>
-              </>
-            ) : (
-              <>
                 <GradientCipherButton label="Discover use cases" icon={ArrowDown} iconRight className="flex-1 text-sm px-5 py-3" onClick={() => {
                   posthog?.capture('cta_clicked', {
                     cta_text: 'Discover use cases',
@@ -1914,8 +1795,6 @@ export default function IronClawNuxApp() {
                     </span>
                   )}
                 </a>
-              </>
-            )}
           </div>
         </div>
       </section>
@@ -1962,7 +1841,7 @@ export default function IronClawNuxApp() {
                 From zero to secure agent in minutes.
               </h2>
               <p className="text-lg leading-relaxed" style={{ color: 'rgba(0,0,0,0.55)' }}>
-                IronClaw offers simple setup and built-in security for OpenClaw's personal AI assistant—powered by NEAR AI Cloud or run locally.
+                IronClaw offers simple setup and built-in security for OpenClaw&apos;s personal AI assistant—powered by NEAR AI Cloud or run locally.
               </p>
             </div>
 
@@ -2228,7 +2107,7 @@ export default function IronClawNuxApp() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10 w-full sm:w-auto">
           <GradientCipherButton label="Deploy secure agent" icon={Rocket} className="w-full sm:w-auto" onClick={() => {
-            (window as any).gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
+            (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag?.('event', 'conversion', { send_to: 'AW-17691708623/99PrCPjJopgcEM-ZiPRB' });
             posthog?.capture('cta_clicked', {
               cta_text: 'Deploy Secure Agent',
               cta_type: 'deploy',
