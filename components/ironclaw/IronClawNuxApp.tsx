@@ -352,9 +352,10 @@ type GradientCipherButtonProps = {
   iconRight?: boolean;
   onClick?: () => void;
   className?: string;
+  style?: React.CSSProperties;
 };
 
-const GradientCipherButton = ({ label, icon: Icon, iconRight = false, onClick, className = '' }: GradientCipherButtonProps) => {
+const GradientCipherButton = ({ label, icon: Icon, iconRight = false, onClick, className = '', style }: GradientCipherButtonProps) => {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -367,6 +368,7 @@ const GradientCipherButton = ({ label, icon: Icon, iconRight = false, onClick, c
         borderRadius: '16px',
         transition: 'box-shadow 0.3s ease',
         boxShadow: hovered ? '0 24px 24px -20px rgba(76,167,230,0.55)' : 'none',
+        ...style,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -382,37 +384,19 @@ const GradientCipherButton = ({ label, icon: Icon, iconRight = false, onClick, c
           borderRadius: '16px',
         }}
       />
-      {/* Icon animates on hover — launch wiggle on the left, nudge when trailing */}
+      {/* Icon animates on hover — launch wiggle on the left, soft up/down float when trailing */}
       <span style={{
         position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center',
-        animation: hovered && !iconRight ? 'rocket-prepare 0.7s ease-in-out infinite' : 'none',
-        transform: hovered && iconRight ? 'translateX(3px)' : 'translateX(0)',
-        transition: 'transform 0.25s ease',
+        animation: hovered
+          ? (iconRight ? 'arrow-float-soft 1.4s ease-in-out infinite' : 'rocket-prepare 0.7s ease-in-out infinite')
+          : 'none',
       }}>
         {Icon ? <Icon size={19} /> : <Rocket size={19} />}
       </span>
-      <span className="font-medium" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
+      <span className="font-mono-ic font-normal" style={{ position: 'relative', zIndex: 1 }}>{label}</span>
     </button>
   );
 };
-
-// ─── Claw mark ───────────────────────────────────────────────────────────────
-// The leading claw glyph from /images/ironclaw-logo.svg, inlined and cropped
-// to its exact bounding box (the source file's viewBox includes the full
-// "ironclaw" lettering, so clipping the <img> always risked showing a sliver
-// of the blue "i"). The glyph's bbox is x 45.2–99.45, y 34.11–88.36 — square.
-const ClawMark = ({ size = 44, style }: { size?: number; style?: React.CSSProperties }) => (
-  <svg
-    viewBox="45.2 34.11 54.25 54.25"
-    width={size}
-    height={size}
-    fill="currentColor"
-    aria-hidden="true"
-    style={style}
-  >
-    <path d="M93.67,34.12c-2.01,0-3.87,1.04-4.93,2.75l-11.34,16.83c-.37.55-.22,1.3.34,1.67.45.3,1.04.26,1.45-.09l11.16-9.68c.19-.17.47-.15.64.04.08.08.12.19.12.31v30.31c0,.25-.2.45-.45.45-.13,0-.26-.06-.35-.16l-33.74-40.39c-1.1-1.3-2.71-2.04-4.41-2.05h-1.18c-3.19,0-5.78,2.59-5.78,5.78v42.69c0,3.19,2.59,5.78,5.78,5.78,2.01,0,3.87-1.04,4.93-2.75l11.34-16.83c.37-.55.22-1.3-.34-1.67-.45-.3-1.04-.26-1.45.09l-11.16,9.68c-.19.17-.47.15-.64-.04-.08-.08-.12-.19-.11-.31v-30.32c0-.25.2-.45.45-.45.13,0,.26.06.35.16l33.73,40.39c1.1,1.3,2.71,2.04,4.41,2.05h1.18c3.19,0,5.78-2.58,5.78-5.78v-42.69c0-3.19-2.59-5.78-5.78-5.78h0Z" />
-  </svg>
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1047,6 +1031,7 @@ const HeroIntentCapture = () => {
   const [focused, setFocused] = useState(false);
   const [suggestionIdx, setSuggestionIdx] = useState(0);
   const [suggestionVisible, setSuggestionVisible] = useState(true);
+  const [submitHovered, setSubmitHovered] = useState(false);
   const posthog = usePostHog();
 
   // Suggestions rotate one at a time as ghost placeholder text; clicking the
@@ -1079,64 +1064,88 @@ const HeroIntentCapture = () => {
   return (
     <div className="max-w-xl">
       <div
-        className="relative flex items-center gap-2 p-2 pl-4 transition-all"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.75)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: `1.5px solid ${focused ? 'var(--ic-accent)' : 'var(--ic-line-mid)'}`,
-          borderRadius: '18px',
-          boxShadow: focused ? '0 12px 40px -12px rgba(76,167,230,0.35)' : '0 4px 24px rgba(0,0,0,0.04)',
-        }}
+        className={`flex flex-col sm:flex-row sm:items-center gap-2 py-2 px-3 sm:px-4 sm:pr-2 transition-all bg-white/75 backdrop-blur [-webkit-backdrop-filter:blur(8px)] rounded-[18px] border-[1.5px] ${
+          focused
+            ? 'border-[var(--ic-accent)] shadow-[0_12px_40px_-12px_rgba(76,167,230,0.35)]'
+            : 'border-[var(--ic-line-mid)] shadow-[0_4px_24px_rgba(0,0,0,0.04)]'
+        }`}
       >
-        <input
-          type="text"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') submit(value);
-            if (e.key === 'Tab' && !value) { e.preventDefault(); adoptSuggestion(); }
-          }}
-          aria-label="Describe what you want your agent to automate"
-          className="flex-1 bg-transparent outline-none text-base min-w-0"
-          style={{ color: 'var(--ic-ink)', fontFamily: 'inherit' }}
-        />
-        {/* Rotating ghost suggestion — click to adopt */}
-        {!value && (
-          <button
-            type="button"
-            onClick={adoptSuggestion}
-            aria-label={`Use suggestion: ${INTENT_SUGGESTIONS[suggestionIdx]}`}
-            className="absolute left-4 right-24 text-left text-base overflow-hidden whitespace-nowrap cursor-text"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              color: 'var(--ic-ink-faint)',
-              fontFamily: 'inherit',
-              textOverflow: 'ellipsis',
-              opacity: suggestionVisible ? 1 : 0,
-              transform: suggestionVisible ? 'translateY(0)' : 'translateY(6px)',
-              transition: 'opacity 0.35s ease, transform 0.35s ease',
+        <div className="relative flex items-center flex-1 min-w-0 py-2">
+          <input
+            type="text"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') submit(value);
+              if (e.key === 'Tab' && !value) { e.preventDefault(); adoptSuggestion(); }
             }}
-          >
-            {INTENT_SUGGESTIONS[suggestionIdx]}
-          </button>
-        )}
+            aria-label="Describe what you want your agent to automate"
+            className="flex-1 bg-transparent outline-none text-base min-w-0"
+            style={{ color: 'var(--ic-ink)', fontFamily: 'inherit' }}
+          />
+          {/* Rotating ghost suggestion — click to adopt */}
+          {!value && (
+            <button
+              type="button"
+              onClick={adoptSuggestion}
+              aria-label={`Use suggestion: ${INTENT_SUGGESTIONS[suggestionIdx]}`}
+              className="absolute left-0 right-0 text-left text-base overflow-hidden whitespace-nowrap cursor-text"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: 'var(--ic-ink-faint)',
+                fontFamily: 'inherit',
+                textOverflow: 'ellipsis',
+                opacity: suggestionVisible ? 1 : 0,
+                transform: suggestionVisible ? 'translateY(0)' : 'translateY(6px)',
+                transition: 'opacity 0.35s ease, transform 0.35s ease',
+              }}
+            >
+              {INTENT_SUGGESTIONS[suggestionIdx]}
+            </button>
+          )}
+        </div>
         <button
           onClick={() => submit(value)}
-          aria-label="Start with this automation"
-          className="font-pixel-ic text-sm flex items-center gap-1.5 px-5 py-2.5 whitespace-nowrap transition-all cursor-pointer"
+          onMouseEnter={() => setSubmitHovered(true)}
+          onMouseLeave={() => setSubmitHovered(false)}
+          aria-label="Let's start — send this to your agent"
+          className="w-full sm:w-auto font-pixel-ic text-base leading-none flex items-center justify-center gap-1.5 px-5 pt-4 pb-3.5 whitespace-nowrap cursor-pointer"
           style={{
             background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))',
             color: '#fff',
             borderRadius: '12px',
             border: 'none',
+            boxShadow: submitHovered
+              ? '0 0 0 6px rgba(76,167,230,0.18), 0 16px 32px -12px rgba(76,167,230,0.6)'
+              : '0 0 0 0px rgba(76,167,230,0), 0 8px 20px -12px rgba(76,167,230,0.35)',
+            transition: 'box-shadow 0.3s ease',
           }}
         >
-          Start <ArrowRight size={14} />
+          Let&apos;s Start
+          <span className="relative inline-flex items-center justify-center" style={{ width: 14, height: 14 }}>
+            <ArrowRight
+              size={14}
+              style={{
+                position: 'absolute',
+                opacity: submitHovered ? 0 : 1,
+                transform: submitHovered ? 'rotate(-20deg) scale(0.6)' : 'rotate(0deg) scale(1)',
+                transition: 'opacity 0.2s ease, transform 0.2s ease',
+              }}
+            />
+            <Send
+              size={14}
+              style={{
+                position: 'absolute',
+                opacity: submitHovered ? 1 : 0,
+                transform: submitHovered ? 'rotate(0deg) scale(1)' : 'rotate(20deg) scale(0.6)',
+                transition: 'opacity 0.2s ease, transform 0.2s ease',
+              }}
+            />
+          </span>
         </button>
       </div>
     </div>
@@ -1298,7 +1307,7 @@ const IntegrationsSection = () => {
         </div>
 
         {/* Looping marquee rows — opposite directions, pause on hover */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col">
           {[{ items: rowA, reverse: false }, { items: rowB, reverse: true }].map(({ items, reverse }, rowIdx) => (
             <div key={rowIdx} className="ic-marquee overflow-hidden py-5" style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}>
               <div className={`flex items-center gap-4 w-max ${reverse ? 'ic-marquee-track-rev' : 'ic-marquee-track'}`}>
@@ -1361,11 +1370,23 @@ const UseCasesSection = () => {
         id="use-cases"
         className="relative z-20 px-8 py-14 md:p-16"
         style={{
-          background: 'radial-gradient(ellipse 80% 60% at 50% 0%, var(--ic-accent-wash) 0%, transparent 70%), var(--ic-surface)',
           borderRadius: 'var(--ic-radius-section)',
-          border: '1px solid var(--ic-line)',
-          marginBottom: '16px',
-        }}
+          // Dark-mode palette, scoped to this section only — shadows the shared
+          // --ic-* tokens for every descendant without touching the rest of the
+          // (light) page, which still reads the tokens from NUX_TOKENS.
+          '--ic-ink': '#f5f5f5',
+          '--ic-ink-soft': 'rgba(255,255,255,0.62)',
+          '--ic-ink-faint': 'rgba(255,255,255,0.42)',
+          '--ic-surface': '#1a1a1a',
+          '--ic-surface-raised': '#242424',
+          '--ic-line': 'rgba(255,255,255,0.1)',
+          '--ic-line-mid': 'rgba(255,255,255,0.18)',
+          '--ic-accent-wash': 'rgba(76,167,230,0.14)',
+          '--ic-accent-tint': 'rgba(76,167,230,0.18)',
+          '--ic-accent-line': 'rgba(76,167,230,0.32)',
+          '--ic-accent-line-strong': 'rgba(76,167,230,0.5)',
+          '--ic-accent-deep': '#7fc4f2',
+        } as React.CSSProperties}
       >
         <div className="max-w-[1600px] mx-auto">
           {/* Header */}
@@ -1391,7 +1412,7 @@ const UseCasesSection = () => {
                 style={category === cat.id
                   ? { backgroundColor: 'var(--ic-accent-tint)', color: 'var(--ic-accent-deep)', border: '1px solid var(--ic-accent-line-strong)', borderRadius: 'var(--ic-radius-pill)' }
                   : { backgroundColor: 'transparent', color: 'var(--ic-ink-faint)', border: '1px solid var(--ic-line-mid)', borderRadius: 'var(--ic-radius-pill)' }}
-                onMouseEnter={e => { if (category !== cat.id) e.currentTarget.style.borderColor = 'rgba(0,0,0,0.3)'; }}
+                onMouseEnter={e => { if (category !== cat.id) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; }}
                 onMouseLeave={e => { if (category !== cat.id) e.currentTarget.style.borderColor = 'var(--ic-line-mid)'; }}
               >
                 {cat.label}
@@ -1427,7 +1448,12 @@ const UseCasesSection = () => {
                 <p className="text-sm leading-relaxed relative z-10 flex-1" style={{ color: 'var(--ic-ink-soft)' }}>{useCase.desc}</p>
                 <div className="flex flex-wrap gap-1.5 relative z-10">
                   {useCase.integrations.map(tag => (
-                    <span key={tag} className="font-pixel-ic px-2 py-0.5 text-[9px]" style={{ backgroundColor: 'var(--ic-accent-wash)', color: 'var(--ic-accent-deep)', border: '1px solid var(--ic-accent-line)', borderRadius: 'var(--ic-radius-pill)' }}>{tag}</span>
+                    <span
+                      key={tag}
+                      className="font-pixel-ic inline-flex items-center justify-center leading-none px-2 pt-[0.35rem] pb-1 text-[9px] bg-[var(--ic-accent-wash)] text-[var(--ic-accent-deep)] border border-[var(--ic-accent-line)] rounded-[var(--ic-radius-pill)]"
+                    >
+                      {tag}
+                    </span>
                   ))}
                 </div>
               </a>
@@ -1528,18 +1554,16 @@ export default function IronClawNuxApp() {
   return (
     <div
       className="min-h-screen selection:bg-[#4CA7E6] selection:text-white"
-      style={{ ...NUX_TOKENS, overflowX: 'clip', backgroundColor: '#1a1a1a', color: '#111', fontFamily: 'var(--font-geist-sans), sans-serif' }}
+      style={{ ...NUX_TOKENS, overflowX: 'clip', backgroundColor: '#1a1a1a', color: '#111', fontFamily: 'var(--font-fk-grotesk), sans-serif' }}
     >
       <style>{`
         * { box-sizing: border-box; }
         p, span { text-wrap: pretty !important; }
         .animate-hybrid-marquee-x, .animate-hybrid-marquee-x * { text-wrap: nowrap !important; white-space: nowrap !important; }
-        /* NUX type system: Geist for everything, Geist Mono for code-ish
-           accents, Geist Pixel Square for stylistic uppercase tags. */
-        .font-mono-ic { font-family: var(--font-geist-mono), monospace; }
-        .font-pixel-ic { font-family: var(--font-geist-pixel-square), var(--font-geist-mono), monospace; text-transform: uppercase; }
+        .font-mono-ic { font-family: var(--font-fk-grotesk-mono), monospace; }
+        .font-pixel-ic { font-family: var(--font-fk-grotesk-mono), monospace; text-transform: uppercase; }
         .nav-link-white {
-          font-size: 0.75rem; color: #555; white-space: nowrap;
+          font-size: 14px; color: #555; white-space: nowrap;
           padding: 6px 10px; border-radius: 8px;
           transition: color 0.2s ease, background-color 0.25s ease;
         }
@@ -1569,10 +1593,14 @@ export default function IronClawNuxApp() {
             boxShadow: scrolled ? '0 8px 40px rgba(0,0,0,0.08)' : 'none',
           }}
         >
-          {/* Icon-only mark: the claw glyph, cropped to its exact bbox so no
-              sliver of the blue lettering can bleed in. */}
-          <a href="#" aria-label="IronClaw" className="flex items-center flex-shrink-0 p-1.5" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-            <ClawMark size={28} style={{ display: 'block', color: '#111' }} />
+          <a href="#" aria-label="IronClaw" className="flex items-center flex-shrink-0" onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+            <Image
+              src="/images/ironclaw-logo.png"
+              alt="IronClaw"
+              width={140}
+              height={36}
+              style={{ height: 'auto' }}
+            />
           </a>
 
           <div className="hidden lg:flex items-center gap-6 flex-nowrap min-w-0">
@@ -1689,7 +1717,7 @@ export default function IronClawNuxApp() {
       {/* ── Hero — light mode ────────────────────────────────────────────────── */}
       <section
         className="relative min-h-screen flex flex-col overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 100%, rgba(76,167,230,0.12) 0%, transparent 70%), #f6f6f6', borderRadius: '0 0 48px 48px', marginBottom: '16px' }}
+        style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 100%, rgba(76,167,230,0.12) 0%, transparent 70%), #f6f6f6', borderRadius: '0 0 48px 48px' }}
       >
         <MagneticHeroCanvas />
 
@@ -1716,13 +1744,14 @@ export default function IronClawNuxApp() {
               cluster leaves over, so tall viewports don't open up a dead gap */}
           <div className="grid grid-cols-1 w-full my-auto">
             <div>
-              {/* Quiet "Built by NEAR" lockup — translucent, sits where the old
-                  muted wordmark did. */}
-              <div className="flex items-center gap-2" style={{ marginBottom: '20px', opacity: 0.32 }}>
-                <span className="font-pixel-ic text-[11px] tracking-[0.15em]" style={{ color: 'var(--ic-ink)' }}>Built by</span>
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4 md:mb-8"
+                style={{ backgroundColor: 'rgba(76,167,230,0.14)', border: '1px solid rgba(76,167,230,0.32)' }}
+              >
+                <span className="font-mono-ic text-[10px] lg:text-[11px] font-light uppercase tracking-widest" style={{ color: '#111' }}>Built by</span>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/near-logo-black.svg" alt="NEAR" style={{ height: '36px', width: 'auto', display: 'block' }} />
-                <span className="font-pixel-ic text-[11px] tracking-[0.15em]" style={{ color: 'var(--ic-ink)' }}>Near Foundation</span>
+                <img src="/images/near-logo-black.svg" alt="NEAR" style={{ height: '12px', width: 'auto', display: 'block' }} />
+                <span className="font-mono-ic text-[10px] lg:text-[11px] font-light uppercase tracking-widest" style={{ color: '#111' }}>Near Foundation</span>
               </div>
 
               <h1
@@ -1762,8 +1791,8 @@ export default function IronClawNuxApp() {
           {/* CTA cluster — anchored to the bottom of the 100vh hero. Discovery
               leads; the deploy flow lives in the nav, intent capture, and the
               use-case cards themselves. */}
-          <div className="pt-10 flex flex-col sm:flex-row gap-3 w-full max-w-md relative z-10">
-                <GradientCipherButton label="Discover use cases" icon={ArrowDown} iconRight className="flex-1 text-sm px-5 py-3" onClick={() => {
+          <div className="pt-10 flex flex-col sm:flex-row gap-3 w-full max-w-lg relative z-10">
+                <GradientCipherButton label="Discover use cases" icon={ArrowDown} iconRight className="w-full sm:w-auto shrink-0 text-sm" style={{ padding: '18px 26px' }} onClick={() => {
                   posthog?.capture('cta_clicked', {
                     cta_text: 'Discover use cases',
                     cta_type: 'use_cases',
@@ -1775,8 +1804,8 @@ export default function IronClawNuxApp() {
                   href="https://github.com/nearai/ironclaw"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex-1 font-medium text-sm px-5 py-3 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  style={{ border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', textDecoration: 'none', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
+                  className="group w-full sm:w-auto shrink-0 font-medium text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  style={{ padding: '18px 26px', border: '2px solid rgba(76,167,230,0.6)', borderRadius: '16px', backgroundColor: 'rgba(255,255,255,0.05)', color: '#111', textDecoration: 'none', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}
                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4CA7E6'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.boxShadow = '0 24px 24px -20px rgba(76,167,230,0.55)'; }}
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#111'; e.currentTarget.style.boxShadow = 'none'; }}
                   onClick={() => posthog?.capture('cta_clicked', {
@@ -2266,6 +2295,7 @@ export default function IronClawNuxApp() {
               { label: 'Docs', href: 'https://docs.ironclaw.com', cta_type: 'docs' },
               { label: 'GitHub', href: 'https://github.com/nearai/ironclaw', cta_type: 'github' },
               { label: 'NEAR AI', href: 'https://near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_link', cta_type: 'near_ai' },
+              { label: 'OpenClaw', href: 'https://agent.near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_openclaw', cta_type: 'deploy' },
             ].map(link => (
               <a
                 key={link.label}

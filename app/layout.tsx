@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
-import { GeistPixelSquare } from "geist/font/pixel";
 import Script from "next/script";
 import "./globals.css";
 import { PHProvider } from "./providers";
@@ -97,7 +94,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${fkGrotesk.variable} ${fkGroteskMono.variable} ${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} antialiased`}>
+      <body className={`${fkGrotesk.variable} ${fkGroteskMono.variable} antialiased`}>
         {process.env.NEXT_PUBLIC_POSTHOG_KEY ? (
           <PHProvider>{children}</PHProvider>
         ) : (
