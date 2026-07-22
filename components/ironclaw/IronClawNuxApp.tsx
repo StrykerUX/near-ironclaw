@@ -964,6 +964,8 @@ function PricingCard({ name, price, originalPrice, period, description, features
       </ul>
       <a
         href={agentHref(`pricing_${name.toLowerCase().replace('+', 'plus')}`, { plan: name.toLowerCase().replace('+', 'plus') })}
+        target="_blank"
+        rel="noopener noreferrer"
         style={{
           display: 'block',
           padding: '0.7rem',
@@ -1054,7 +1056,7 @@ const HeroIntentCapture = () => {
   const submit = (text: string) => {
     const prompt = text.trim();
     posthog?.capture('intent_submitted', { length: prompt.length, page_section: 'hero' });
-    window.location.href = prompt ? agentHref('hero', { prompt }) : agentHref('hero');
+    window.open(prompt ? agentHref('hero', { prompt }) : agentHref('hero'), '_blank', 'noopener,noreferrer');
   };
 
   const adoptSuggestion = () => {
@@ -1202,7 +1204,7 @@ const IntegrationModal = ({ entry, onClose }: { entry: IntegrationEntry; onClose
 
   const launch = (prompt: string) => {
     posthog?.capture('integration_recipe_clicked', { integration: entry.id, page_section: 'integrations' });
-    window.location.assign(agentHref(`integration_${entry.id}`, { integration: entry.id, prompt }));
+    window.open(agentHref(`integration_${entry.id}`, { integration: entry.id, prompt }), '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -1262,6 +1264,8 @@ const IntegrationModal = ({ entry, onClose }: { entry: IntegrationEntry; onClose
 
         <a
           href={agentHref(`integration_${entry.id}_connect`, { integration: entry.id, prompt: `Connect ${entry.name} for me` })}
+          target="_blank"
+          rel="noopener noreferrer"
           onClick={() => posthog?.capture('integration_connect_clicked', { integration: entry.id, page_section: 'integrations' })}
           className="font-mono-ic font-normal text-sm flex items-center justify-center gap-2 w-full py-3 cursor-pointer"
           style={{ background: 'radial-gradient(ellipse at 50% 130%, var(--ic-accent), var(--ic-accent-deep))', color: '#fff', borderRadius: '12px', textDecoration: 'none' }}
@@ -1426,6 +1430,8 @@ const UseCasesSection = () => {
               <a
                 key={useCase.id}
                 href={agentHref(`usecase_${useCase.id}`, { usecase: useCase.id, prompt: useCase.prompt })}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group p-5 flex flex-col gap-3 transition-all relative overflow-hidden"
                 style={{ backgroundColor: 'var(--ic-surface-raised)', border: '1px solid var(--ic-line)', borderRadius: 'var(--ic-radius-card)', textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ic-accent-line)')}
@@ -1641,7 +1647,7 @@ export default function IronClawNuxApp() {
               cta_type: 'deploy',
               page_section: 'nav',
             });
-            window.location.href = agentHref('nav_deploy');
+            window.open(agentHref('nav_deploy'), '_blank', 'noopener,noreferrer');
           }} />
 
           <button className="lg:hidden cursor-pointer" style={{ color: '#111' }} onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -2142,7 +2148,7 @@ export default function IronClawNuxApp() {
               cta_type: 'deploy',
               page_section: 'bottom',
             });
-            window.location.href = agentHref('bottom_deploy');
+            window.open(agentHref('bottom_deploy'), '_blank', 'noopener,noreferrer');
           }} />
           <a
             href="https://github.com/nearai/ironclaw"
