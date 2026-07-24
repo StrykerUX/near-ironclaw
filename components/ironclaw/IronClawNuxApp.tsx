@@ -883,33 +883,10 @@ const EncryptedVaultUI = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Where intent lands: every CTA now drops the user straight into the product's
-// chat-first onboarding (`/start` on agent.near.ai) — an agent chat from the
-// first second, auth deferred until a tool is needed. The captured prompt/usecase
-// rides along as query params and auto-runs as the first turn. No "what do you
-// want to do?" form, no payment gate, no agent-type pick (per onboarding align).
+// Where intent lands: agent.near.ai doesn't support the dynamic /start deep-link
+// params (prompt/usecase/plan/integration) yet, so every CTA points at the plain
+// app URL for now. Revisit once those params ship — see the chat-first NUX PR.
 const AGENT_APP_URL = process.env.NEXT_PUBLIC_AGENT_APP_URL || 'https://agent.near.ai';
-
-// Marketing pricing tiers (Starter / Basic / Pro+) → product plan ids.
-const PRODUCT_PLAN_IDS: Record<string, string> = {
-  starter: 'starter',
-  basic: 'basic',
-  proplus: 'pro',
-  pro: 'pro',
-};
-const normalizePlanId = (raw: string): string => PRODUCT_PLAN_IDS[raw] ?? raw;
-
-const agentHref = (campaign: string, params: Record<string, string> = {}) => {
-  const normalized = { ...params };
-  if (normalized.plan) normalized.plan = normalizePlanId(normalized.plan);
-  const sp = new URLSearchParams({
-    utm_source: 'ironclaw',
-    utm_medium: 'web',
-    utm_campaign: campaign,
-    ...normalized,
-  });
-  return `${AGENT_APP_URL}/start?${sp.toString()}`;
-};
 
 // Pricing Card Component
 type PricingCardProps = {
@@ -963,7 +940,7 @@ function PricingCard({ name, price, originalPrice, period, description, features
         ))}
       </ul>
       <a
-        href={agentHref(`pricing_${name.toLowerCase().replace('+', 'plus')}`, { plan: name.toLowerCase().replace('+', 'plus') })}
+        href={AGENT_APP_URL}
         target="_blank"
         rel="noopener noreferrer"
         style={{
@@ -1050,13 +1027,12 @@ const HeroIntentCapture = () => {
     return () => clearInterval(id);
   }, [value]);
 
-  // Submitting hands off directly to the product chat-first /start, carrying the
-  // typed intent along as ?prompt= so it auto-runs as the first turn. An empty
-  // input simply opens /start with no prompt.
+  // Submitting hands off to the product app. The typed intent isn't carried
+  // along yet — agent.near.ai doesn't support the ?prompt= deep-link param.
   const submit = (text: string) => {
     const prompt = text.trim();
     posthog?.capture('intent_submitted', { length: prompt.length, page_section: 'hero' });
-    window.open(prompt ? agentHref('hero', { prompt }) : agentHref('hero'), '_blank', 'noopener,noreferrer');
+    window.open(AGENT_APP_URL, '_blank', 'noopener,noreferrer');
   };
 
   const adoptSuggestion = () => {
@@ -1202,11 +1178,6 @@ const IntegrationModal = ({ entry, onClose }: { entry: IntegrationEntry; onClose
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const launch = (prompt: string) => {
-    posthog?.capture('integration_recipe_clicked', { integration: entry.id, page_section: 'integrations' });
-    window.open(agentHref(`integration_${entry.id}`, { integration: entry.id, prompt }), '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -1244,26 +1215,22 @@ const IntegrationModal = ({ entry, onClose }: { entry: IntegrationEntry; onClose
 
         <p className="text-[15px] leading-relaxed mb-5" style={{ color: 'var(--ic-ink-soft)' }}>{entry.blurb}</p>
 
-        <p className="font-pixel-ic text-[11px] tracking-[0.12em] mb-3" style={{ color: 'var(--ic-ink-faint)' }}>Try one now</p>
+        <p className="font-pixel-ic text-[11px] tracking-[0.12em] mb-3" style={{ color: 'var(--ic-ink-faint)' }}>What you can automate</p>
         <div className="flex flex-col gap-2 mb-5">
           {entry.recipes.map(recipe => (
-            <button
+            <div
               key={recipe}
-              type="button"
-              onClick={() => launch(recipe)}
-              className="group flex items-start gap-2.5 text-left px-4 py-3 cursor-pointer"
-              style={{ backgroundColor: 'var(--ic-surface-raised)', border: '1px solid var(--ic-line)', borderRadius: '0.875rem', color: 'var(--ic-ink)', fontFamily: 'inherit', transition: 'border-color 0.15s ease, background-color 0.15s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ic-accent-line)'; e.currentTarget.style.backgroundColor = 'var(--ic-accent-wash)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--ic-line)'; e.currentTarget.style.backgroundColor = 'var(--ic-surface-raised)'; }}
+              className="flex items-start gap-2.5 px-4 py-3"
+              style={{ backgroundColor: 'var(--ic-surface-raised)', border: '1px solid var(--ic-line)', borderRadius: '0.875rem', color: 'var(--ic-ink)' }}
             >
-              <ArrowRight size={15} className="mt-0.5 flex-shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--ic-accent)' }} />
+              <ArrowRight size={15} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--ic-accent)' }} />
               <span className="text-sm leading-snug">{recipe}</span>
-            </button>
+            </div>
           ))}
         </div>
 
         <a
-          href={agentHref(`integration_${entry.id}_connect`, { integration: entry.id, prompt: `Connect ${entry.name} for me` })}
+          href={AGENT_APP_URL}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => posthog?.capture('integration_connect_clicked', { integration: entry.id, page_section: 'integrations' })}
@@ -1361,7 +1328,6 @@ const IntegrationsSection = () => {
 
 const UseCasesSection = () => {
   const [category, setCategory] = useState('all');
-  const posthog = usePostHog();
 
   const visible = category === 'all'
     ? USE_CASES
@@ -1427,28 +1393,13 @@ const UseCasesSection = () => {
           {/* Directory grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {visible.map(useCase => (
-              <a
+              <div
                 key={useCase.id}
-                href={agentHref(`usecase_${useCase.id}`, { usecase: useCase.id, prompt: useCase.prompt })}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group p-5 flex flex-col gap-3 transition-all relative overflow-hidden"
-                style={{ backgroundColor: 'var(--ic-surface-raised)', border: '1px solid var(--ic-line)', borderRadius: 'var(--ic-radius-card)', textDecoration: 'none' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ic-accent-line)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--ic-line)')}
-                onClick={() => posthog?.capture('usecase_card_clicked', { usecase: useCase.id, page_section: 'use_cases' })}
+                className="p-5 flex flex-col gap-3 relative"
+                style={{ backgroundColor: 'var(--ic-surface-raised)', border: '1px solid var(--ic-line)', borderRadius: 'var(--ic-radius-card)' }}
               >
-                {/* Dot pattern on hover — same treatment as the feature cards */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{
-                  position: 'absolute', inset: 0, pointerEvents: 'none',
-                  backgroundImage: 'radial-gradient(circle, var(--ic-accent-line) 1px, transparent 1px)',
-                  backgroundSize: '24px 24px',
-                  maskImage: 'linear-gradient(to bottom left, black 0%, transparent 65%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom left, black 0%, transparent 65%)',
-                }} />
                 <div className="flex items-center justify-between relative z-10">
                   <useCase.icon size={20} style={{ color: 'var(--ic-accent)' }} />
-                  <ArrowRight size={15} className="opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0 -translate-x-1" style={{ color: 'var(--ic-accent)' }} />
                 </div>
                 <h4 className="font-semibold text-[16px] relative z-10" style={{ color: 'var(--ic-ink)' }}>{useCase.title}</h4>
                 <p className="text-sm leading-relaxed relative z-10 flex-1" style={{ color: 'var(--ic-ink-soft)' }}>{useCase.desc}</p>
@@ -1462,7 +1413,7 @@ const UseCasesSection = () => {
                     </span>
                   ))}
                 </div>
-              </a>
+              </div>
             ))}
           </div>
 
@@ -1647,7 +1598,7 @@ export default function IronClawNuxApp() {
               cta_type: 'deploy',
               page_section: 'nav',
             });
-            window.open(agentHref('nav_deploy'), '_blank', 'noopener,noreferrer');
+            window.open(AGENT_APP_URL, '_blank', 'noopener,noreferrer');
           }} />
 
           <button className="lg:hidden cursor-pointer" style={{ color: '#111' }} onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -2148,7 +2099,7 @@ export default function IronClawNuxApp() {
               cta_type: 'deploy',
               page_section: 'bottom',
             });
-            window.open(agentHref('bottom_deploy'), '_blank', 'noopener,noreferrer');
+            window.open(AGENT_APP_URL, '_blank', 'noopener,noreferrer');
           }} />
           <a
             href="https://github.com/nearai/ironclaw"
@@ -2301,7 +2252,6 @@ export default function IronClawNuxApp() {
               { label: 'Docs', href: 'https://docs.ironclaw.com', cta_type: 'docs' },
               { label: 'GitHub', href: 'https://github.com/nearai/ironclaw', cta_type: 'github' },
               { label: 'NEAR AI', href: 'https://near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_link', cta_type: 'near_ai' },
-              { label: 'OpenClaw', href: 'https://agent.near.ai?utm_source=ironclaw&utm_medium=web&utm_campaign=footer_openclaw', cta_type: 'deploy' },
             ].map(link => (
               <a
                 key={link.label}
