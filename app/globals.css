@@ -46,6 +46,12 @@ body {
   100% { transform: translateY(0px)  rotate(0deg);  }
 }
 
+@keyframes arrow-float-soft {
+  0%, 100% { transform: translateY(0); }
+  25%      { transform: translateY(3px); }
+  75%      { transform: translateY(-3px); }
+}
+
 @keyframes github-nudge {
   /* vibrate */
   0%   { transform: rotate(0deg)  scale(1);    }
